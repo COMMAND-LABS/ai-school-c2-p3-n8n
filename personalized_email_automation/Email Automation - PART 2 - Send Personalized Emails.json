@@ -1,0 +1,145 @@
+{
+  "name": "Email Automation - PART 2 - Send Personalized Emails",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "aff848c8-b8cc-4f97-9e81-b810b9a209c5",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        256,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "apphOFikyofGAIOGS",
+          "mode": "list",
+          "cachedResultName": "Command Labs Content Base",
+          "cachedResultUrl": "https://airtable.com/apphOFikyofGAIOGS"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl0oDEa0K1PrcuzM",
+          "mode": "list",
+          "cachedResultName": "Activate Contacts",
+          "cachedResultUrl": "https://airtable.com/apphOFikyofGAIOGS/tbl0oDEa0K1PrcuzM"
+        },
+        "returnAll": false,
+        "limit": 2,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        480,
+        528
+      ],
+      "id": "30493562-3437-4679-98ba-645bc98308af",
+      "name": "Search records",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "IyZKJLp3abvgnCaS",
+          "name": "Airtable COMMAND Content Creation"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $json['Email Subject'] }}",
+        "message": "={{ $json['Email Body'] }}",
+        "options": {
+          "sendTo": "={{ $json.Email }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        704,
+        432
+      ],
+      "id": "fcb29d17-d203-4d28-8641-2c998ab858be",
+      "name": "Create a draft",
+      "webhookId": "b0f1231b-cf83-4887-9aae-903ad98fe611",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "XGmbUuCuYARIoavz",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.Email }}",
+        "subject": "={{ $json['Email Subject'] }}",
+        "emailType": "text",
+        "message": "={{ $json['Email Body'] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        704,
+        640
+      ],
+      "id": "6ac68fb7-81d5-4baa-8596-ac7d33428127",
+      "name": "Send a message",
+      "webhookId": "e2349174-3e94-476e-8d4c-09077a89a7c0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "XGmbUuCuYARIoavz",
+          "name": "Gmail account"
+        }
+      },
+      "disabled": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Search records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records": {
+      "main": [
+        [
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "e5dd6581-54f0-4c74-aacb-73890844d23e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "59163ef64e1cf4dcd8e0818ffdc09c87dbd57c11199a791813b2ff3820cc01aa"
+  },
+  "id": "OYYPu11J49zhQaDD",
+  "tags": []
+}

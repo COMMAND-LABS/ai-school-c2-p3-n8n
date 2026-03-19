@@ -1,0 +1,378 @@
+{
+  "name": "Email Automation - PART 1 - Generate Personalized Emails For Review",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "74a421cc-d06c-4674-b344-3e4ddf7763bb",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        256,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.kalygo.io/api/contacts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "id": "21c3d940-3e3e-4335-bbe2-33b9d3590214",
+      "name": "Fetch Contact List",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        480,
+        528
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "OblpQ4QwIop5jrk6",
+          "name": "Kalygo Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://completion.kalygo.io/api/agents/39/completion",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "sessionId",
+              "value": "={{ $json.uuid }}"
+            },
+            {
+              "name": "prompt",
+              "value": "=Tell me about  {{ $('Fetch Contact List').item.json.name }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d8b2f685-d188-4385-9745-15a0e1a691a1",
+      "name": "Fetch Contact Details",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1152,
+        400
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "OblpQ4QwIop5jrk6",
+          "name": "Kalygo Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# Task\n\nWrite a concise, hyperpersonalized email for a participant of an AI upskilling cohort (called \"AI School\") asking them how their is experience is going. We are currently a quarter of the way through AI School C2 P3 (ie: Cohort 2 Phase 3).\n\n## Context\n\n- I'm running a cohort focused on upskilling high-level professionals in cutting-edge AI techniques and knowledge.\n\n## PARTICIPANT\n\n{{ $('Fetch Contact List').item.json.name }}\n\n## REQUIREMENTS\n\n- The email body footer should just end with \"Regards\"\n- The email greeting footer should be very casual like \"Hello\" or \"Hi\"\n- The tone of the email shoul be very \"human\" (impossible to detect as being AI generated)\n\n## ABOUT THE PARTICIPANT\n\n{{ $json.output }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an expert email copywriter. Your task is to create personalized, engaging email messages based on the contact information provided. Write professional yet warm email bodies that are tailored to each recipient."
+        }
+      },
+      "id": "7a021db4-18a4-4a44-93e2-b3dbc6ade49f",
+      "name": "Generate Personalized Email",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1376,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "9f8ffe78-c6c3-43e4-8eca-56f2f39ee5d8",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1376,
+        720
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "3Pi4ZntDXCnJXClE",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function generateUUID() {\n  return \"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx\".replace(/[xy]/g, function (c) {\n    var r = (Math.random() * 16) | 0,\n      v = c === \"x\" ? r : (r & 0x3) | 0x8;\n    return v.toString(16);\n  });\n}\n\nreturn [{ json: { uuid: generateUUID() } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        400
+      ],
+      "id": "34373fa5-eb54-4611-a21f-9c3a63b6ccf9",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        704,
+        528
+      ],
+      "id": "ef248f5c-0136-4528-b26c-8f964412e620",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"subject\": \"subject line here\",\n\t\"body\": \"formatted text email body here\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1520,
+        752
+      ],
+      "id": "1645a7b2-32da-4868-900f-fe92c2c46de8",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "apphOFikyofGAIOGS",
+          "mode": "list",
+          "cachedResultName": "Command Labs Content Base",
+          "cachedResultUrl": "https://airtable.com/apphOFikyofGAIOGS"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl0oDEa0K1PrcuzM",
+          "mode": "list",
+          "cachedResultName": "Activate Contacts",
+          "cachedResultUrl": "https://airtable.com/apphOFikyofGAIOGS/tbl0oDEa0K1PrcuzM"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email Subject": "={{ $json.output.subject }}",
+            "Email Body": "={{ $json.output.body }}",
+            "Name": "={{ $('Loop Over Items').item.json.name }}",
+            "About": "={{ $('Fetch Contact Details').item.json.output }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "About",
+              "displayName": "About",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email Subject",
+              "displayName": "Email Subject",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email Body",
+              "displayName": "Email Body",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1728,
+        528
+      ],
+      "id": "60b52c91-afb8-4dcb-8d68-bb5a15d6f7f7",
+      "name": "Create a record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "IyZKJLp3abvgnCaS",
+          "name": "Airtable COMMAND Content Creation"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Fetch Contact Details": {
+      "main": [
+        [
+          {
+            "node": "Generate Personalized Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Contact List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Contact List": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Personalized Email",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Personalized Email": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Fetch Contact Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Generate Personalized Email",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a record": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "a22976f2-465b-4d38-bb5b-7b590e730e03",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "59163ef64e1cf4dcd8e0818ffdc09c87dbd57c11199a791813b2ff3820cc01aa"
+  },
+  "id": "ctvk8slYjNzy8OLy",
+  "tags": []
+}
