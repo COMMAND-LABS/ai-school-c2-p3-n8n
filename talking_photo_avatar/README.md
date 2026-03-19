@@ -12,13 +12,13 @@ At the time of recording the free plan on HeyGen is extremely slow. It can take 
 
 ## STEPS
 
-- LEVEL 1: Upload Media Asset
+- STEP 1: Upload Media Asset
   - Import the `PT 1 - Upload Asset to HeyGen API.json` into n8n
   - https://docs.heygen.com/reference/upload-asset
-- LEVEL 2: Create Avatar Group
+- STEP 2: Create Avatar Group
   - Import the `PT 2 - Create HeyGen AI Avatar Group.json` into n8n
   - https://docs.heygen.com/docs/create-and-train-photo-avatar-groups
-- LEVEL 3: Generate video from Photo Avatar
+- STEP 3: Generate video from Photo Avatar
   - Import the `PT 3 - Create Photo Avatar Video.json` into n8n
   - For example my Avatar Look Id was: `6f8eddd848eb481687a541389acaee45`
 
