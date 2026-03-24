@@ -1,6 +1,6 @@
 # TLDR
 
-A AI Video Automation system
+An AI Video Automation system
 
 ## Platforms used
 
