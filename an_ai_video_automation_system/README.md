@@ -21,6 +21,8 @@ A AI Video Automation system
 3. Segment Spoken Audio with Whisper
 
 - `Segment Spoken Audio.json`
+- `HELPER - Validate Segment Durations.json`
+  - This HELPER is used to make sure there are no gaps between the segments
 
 4. Storyboard the Segments of the script
 
