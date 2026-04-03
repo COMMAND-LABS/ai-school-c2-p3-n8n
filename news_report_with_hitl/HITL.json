@@ -1,0 +1,559 @@
+{
+  "name": "HITL",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1648,
+        336
+      ],
+      "id": "37e8a102-911b-4e32-b1aa-7c071dfd5365",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "isBodyHtml": true,
+        "subject": "=AI NEWS TOP 5 for {{ $json.contact.first_name }}",
+        "body": "={{ $('Code in JavaScript1').item.json.htmlEmail }}",
+        "fromEmail": "noreply@cmdlabs.io",
+        "toAddresses": [
+          "={{ $json.contact.email }}"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.awsSes",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        144
+      ],
+      "id": "e91d58bd-67d4-48fb-a53b-23bb2b679014",
+      "name": "Send an email",
+      "credentials": {
+        "aws": {
+          "id": "KIqUH7SzjGDqpCUW",
+          "name": "AWS (IAM) account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "websites",
+              "type": "arrayValue",
+              "arrayValue": "=[\n  \"https://www.artificialintelligence-news.com\",\n  \"https://techcrunch.com/category/artificial-intelligence\"\n]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e7f0f14e-9e1b-4f30-afba-cc6749277a36",
+      "name": "Configure Websites",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        -1424,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.websites }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "2d6c8fa7-3f86-4dca-983b-03c8d3c20b62",
+      "name": "Fetch Website Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -752,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "websites",
+        "options": {}
+      },
+      "id": "139be98f-ec57-4d0c-8b80-de1631121d3e",
+      "name": "Split Into Items",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [
+        -1200,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const completions = $input.all();\nlet articlesAsString = \"\";\nconsole.log('completions', completions)\n\nconsole.log('completions.length', completions.length)\nconsole.log(completions[0].json.data.length)\n\nfor (let i = 0; i < completions[0].json.data.length; i++) {\n\n  let articlesForCompletion = completions[0].json.data[i].message.content.articles\n\n\n  console.log('articlesForCompletion', articlesForCompletion)\n\n  for (let j = 0; j < articlesForCompletion.length; j++) {  \n    articlesAsString += `${articlesForCompletion[j].headline}, ${articlesForCompletion[j].summary}, ${articlesForCompletion[j].linkToArticle}\\n\\n`; \n  }\n\n}\n\n\nreturn { articlesAsString }\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        144
+      ],
+      "id": "16782d1b-dd09-4356-a53f-753a723c8a76",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "=data",
+        "options": {}
+      },
+      "id": "06cdfd93-bd1b-4989-9517-b788083b4048",
+      "name": "Aggregate All Results",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -752,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "c56e5cd7-84e7-4865-a345-65059fdc8439",
+      "name": "Loop Over Websites",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -976,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all().map((item) => item.json);\nlet htmlEmail = \"<html><body><ul>\";\n\nitems.forEach((item) => {\n  item.message.content.articles.forEach((article, index) => {\n    htmlEmail += `<li><a href=\"${article.linkToArticle}\">${index+1}. ${article.headline}</a><p>${article.summary}</p></li>`;\n  });\n});\n\nhtmlEmail += \"</ul></body></html>\";\n\nreturn { htmlEmail };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        144
+      ],
+      "id": "df904012-6a92-4db4-8478-07b79c956c92",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=# TASK\n\nExtract the top five articles news-worthy items given the current date of {{ $now.toLocaleString() }}\n\n## JSON OUTPUT SCHEMA\n\n{\n  \"articles\": [{\n    \"headline\": string;\n    \"summary\": string;\n    \"linkToArticle\": string;\n  }]\n}\n\n## RAW WEBSITE INFORMATION\n\n{{ $json.data.substring(0,200000) }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -512,
+        384
+      ],
+      "id": "3bf50136-2f0c-44ad-ad72-c281e6d49cc1",
+      "name": "Collect 5 articles from front page",
+      "credentials": {
+        "openAiApi": {
+          "id": "3Pi4ZntDXCnJXClE",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=# TASK\n\nExtract the top five news-worthy items given the current date of {{ $now.toLocaleString() }}\n\n## JSON OUTPUT SCHEMA\n\n{\n  \"articles\": [{\n    \"headline\": string;\n    \"summary\": string;\n    \"linkToArticle\": string;\n  }]\n}\n\n## RAW WEBSITE INFORMATION\n\n{{ $json.articlesAsString }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -192,
+        144
+      ],
+      "id": "5b7c5e82-0ecf-420b-b0eb-0fcc2a27282c",
+      "name": "Collect top 5 articles across all websites",
+      "credentials": {
+        "openAiApi": {
+          "id": "3Pi4ZntDXCnJXClE",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "tad@cmdlabs.io",
+        "subject": "Review Report Content",
+        "message": "Review report in an adjacent test PREVIEW email",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        624,
+        144
+      ],
+      "id": "458e20a6-c53c-4b89-845e-7f2b945e5748",
+      "name": "Review",
+      "webhookId": "6d378c1d-b646-4922-9b03-b290cd30f5fa",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "XGmbUuCuYARIoavz",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "tad@cmdlabs.io",
+        "subject": "PREVIEW REPORT FROM N8N",
+        "message": "={{ $json.htmlEmail }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        400,
+        144
+      ],
+      "id": "1cff54b6-d91c-498d-9d36-9b0b2fe1815c",
+      "name": "Send Preview",
+      "webhookId": "49c19551-81f7-4b70-b7e2-d5f5dc3869cc",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "XGmbUuCuYARIoavz",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://api.kalygo.io/api/contact-lists/2/members",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        848,
+        144
+      ],
+      "id": "cb8bae84-4b21-4645-9ad8-d8f55f75ce19",
+      "name": "Fetch Contact List",
+      "alwaysOutputData": false,
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "DUnvAC4U935Qby5F",
+          "name": "Mistral AI API key"
+        },
+        "httpHeaderAuth": {
+          "id": "cVD9SpP4ZJzPYp7F",
+          "name": "Another Kalygo API key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-5-20250929",
+          "cachedResultName": "Claude Sonnet 4.5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        -1632,
+        832
+      ],
+      "id": "898ad476-502e-4683-86fc-b9bb13245822",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "molYjkydhlF4Gr0Z",
+          "name": "AI School Phase 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Do a multi-step process...\n\nSTEP 1: Research the latest news about Havana, Cuba\n\nSTEP 2: after you have the research, write three poems about the top articles. ",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1632,
+        608
+      ],
+      "id": "101b8774-fab7-4bc0-a4ae-97abb5e886d6",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://google.serper.dev/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-KEY",
+              "value": "67543755fa17d2feebcb72f7cc0c378f69e0dc66"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Value', ``, 'string') }}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        -1504,
+        832
+      ],
+      "id": "abbbafa2-0b5d-488c-a0f2-1698b9649b15",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Configure Websites",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configure Websites": {
+      "main": [
+        [
+          {
+            "node": "Split Into Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Website Content": {
+      "main": [
+        [
+          {
+            "node": "Collect 5 articles from front page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Into Items": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Websites",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Collect top 5 articles across all websites",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate All Results": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Websites": {
+      "main": [
+        [
+          {
+            "node": "Aggregate All Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch Website Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Send Preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect 5 articles from front page": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Websites",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect top 5 articles across all websites": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Review": {
+      "main": [
+        [
+          {
+            "node": "Fetch Contact List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Preview": {
+      "main": [
+        [
+          {
+            "node": "Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Contact List": {
+      "main": [
+        [
+          {
+            "node": "Send an email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "49536196-ed56-4f67-a02e-87213afb5b7a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "59163ef64e1cf4dcd8e0818ffdc09c87dbd57c11199a791813b2ff3820cc01aa"
+  },
+  "id": "rkB4B9zKz6aVk8HK",
+  "tags": []
+}
